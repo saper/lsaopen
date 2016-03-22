@@ -1,0 +1,5 @@
+*.obj
+*.lst
+*.exe
+priv.a
+privlist.a
