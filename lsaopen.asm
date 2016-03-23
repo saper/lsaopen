@@ -62,22 +62,68 @@ mov     ecx,sizeof MsgLsaOpenPolicy
 mov	esi,addr MsgLsaOpenPolicy
 jnz	>FAIL
 
-mov	esi, addr PRIVILEGES
 mov	ecx, 0
-lea	eax, [esi + ecx * 8]
-invoke  LsaEnumerateAccountsWithUserRight, [LSAHANDLE], eax, addr ENUMBUF, addr ENUMCOUNT
-STOP:
-test	eax,eax
-mov	ecx,sizeof MsgLsaEAWUR
-mov	esi,addr MsgLsaEAWUR
-jnz	>FAIL
 
+LOOP:
+mov	esi, addr PRIVILEGES
+lea	eax, [esi + ecx * 8]
+cmp	w[eax], 0
+jz	>FINISH
+
+push	eax
+mov     eax, ecx
+push    ecx
+mov	edi,addr RESULTSTR
+call	D2sHEXb
+invoke  WriteFile, [STDOUT], addr RESULTSTR, 10D, addr RCKEEP, 0
+pop     ecx
+pop	eax
+
+push 	ecx
+invoke  LsaEnumerateAccountsWithUserRight, [LSAHANDLE], eax, addr ENUMBUF, addr ENUMCOUNT
+pop	ecx
+
+STOP:
+cmp	eax, 0x8000001A		; STATUS_NO_MORE_ENTRIES
+jz	>SOFTFAIL
+cmp	eax, 0xC0000060		; STATUS_NO_SUCH_PRIVILEGE
+jz	>SOFTFAIL
+
+test	eax,eax
+jnz	>PRIVFAIL
+
+OUTPUTSIDS:
+
+NEXT:
+inc	ecx
+jmp	LOOP
+
+SOFTFAIL:
+push	ecx
+push	eax
+invoke  WriteFile, [STDOUT], 'E', 1, addr RCKEEP, 0
+pop	eax
+mov	edi,addr RESULTSTR
+call	D2sHEXb
+invoke  WriteFile, [STDOUT], addr RESULTSTR, 10D, addr RCKEEP, 0
+pop	ecx
+inc	ecx
+jmp	LOOP
+
+FINISH:
 invoke  LsaClose, [LSAHANDLE]
+
 test	eax,eax
 mov	ecx,sizeof MsgLsaClose
 mov	esi,addr MsgLsaClose
 jnz	>FAIL
+
+xor	eax, eax
 ret
+
+PRIVFAIL:
+mov	ecx,sizeof MsgLsaEAWUR
+mov	esi,addr MsgLsaEAWUR
 
 FAIL:
 push	eax
@@ -85,10 +131,9 @@ invoke  WriteFile, [STDOUT], esi, ecx, addr RCKEEP, 0
 pop	eax
 mov	edi,addr RESULTSTR
 call	D2sHEXb
-
-invoke  GetStdHandle, -11D ;STD_OUTPUT_HANDLE
-invoke  WriteFile, eax, addr RESULTSTR, 10D, addr RCKEEP, 0
+invoke  WriteFile, [STDOUT], addr RESULTSTR, 10D, addr RCKEEP, 0
 xor	eax,eax
+inc	eax
 ret
 
 D2sHEXb:                ;eax=value (allow for reverse storage) [edi]=string
