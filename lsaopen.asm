@@ -111,7 +111,7 @@ invoke  WriteFile, [STDOUT], 'E', 1, addr RCKEEP, 0
 pop	eax
 mov	edi,addr RESULTSTR
 call	D2sHEXb
-invoke  WriteFile, [STDOUT], addr RESULTSTR, 10D, addr RCKEEP, 0
+invoke  WriteFile, [STDOUT], addr RESULTSTR, sizeof RESULTSTR, addr RCKEEP, 0
 pop	ecx
 inc	ecx
 call	CRLF
@@ -138,7 +138,7 @@ invoke  WriteFile, [STDOUT], esi, ecx, addr RCKEEP, 0
 pop	eax
 mov	edi,addr RESULTSTR
 call	D2sHEXb
-invoke  WriteFile, [STDOUT], addr RESULTSTR, 10D, addr RCKEEP, 0
+invoke  WriteFile, [STDOUT], addr RESULTSTR, sizeof RESULTSTR, addr RCKEEP, 0
 xor	eax,eax
 inc	eax
 ret
