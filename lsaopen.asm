@@ -27,11 +27,15 @@ LSAHANDLE
 sHEXb
 	DB "0123456789ABCDEF"
 RESULTSTR
-	DB '00000000',13,10
+	DB '00000000'
 ENUMCOUNT
 	DD  0
 ENUMBUF
 	DD  0
+
+CRLFDATA
+	DB  13, 10
+
 STDOUT
 	DD  0
 
@@ -43,6 +47,9 @@ ENDS
 
 #include priv.a
 #include privlist.a
+
+PrivNameBuf	DB	40 DUP 0
+PrivNameBufEnd
 
 MsgLsaOpenPolicy:
 	DB 'LsaOpenPolicy: '
@@ -70,20 +77,18 @@ lea	eax, [esi + ecx * 8]
 cmp	w[eax], 0
 jz	>FINISH
 
-push	eax
-mov     eax, ecx
-push    ecx
-mov	edi,addr RESULTSTR
-call	D2sHEXb
-invoke  WriteFile, [STDOUT], addr RESULTSTR, 10D, addr RCKEEP, 0
-pop     ecx
-pop	eax
-
 push 	ecx
 invoke  LsaEnumerateAccountsWithUserRight, [LSAHANDLE], eax, addr ENUMBUF, addr ENUMCOUNT
 pop	ecx
+push	eax
+
+call	privname
+push	ecx
+invoke  WriteFile, [STDOUT], addr PrivNameBuf, sizeof PrivNameBuf, addr RCKEEP, 0
+pop	ecx
 
 STOP:
+pop	eax
 cmp	eax, 0x8000001A		; STATUS_NO_MORE_ENTRIES
 jz	>SOFTFAIL
 cmp	eax, 0xC0000060		; STATUS_NO_SUCH_PRIVILEGE
@@ -96,6 +101,7 @@ OUTPUTSIDS:
 
 NEXT:
 inc	ecx
+call	CRLF
 jmp	LOOP
 
 SOFTFAIL:
@@ -108,6 +114,7 @@ call	D2sHEXb
 invoke  WriteFile, [STDOUT], addr RESULTSTR, 10D, addr RCKEEP, 0
 pop	ecx
 inc	ecx
+call	CRLF
 jmp	LOOP
 
 FINISH:
@@ -148,4 +155,34 @@ mov     dl,[sHEXb+ebx]
 mov     [edi],dl
 dec     edi
 loop    L100
+ret
+
+privname:
+mov	edi, addr PrivNameBuf
+mov	esi, addr PRIVILEGES
+xor	edx, edx
+mov	dx,  w[esi+ecx*8]
+mov	esi, d[esi+ecx*8+4]
+L101:
+movsb
+inc	esi
+dec	dx
+dec	dx
+jnz	L101
+
+; Pad privilege name with spaces
+mov	al, 0x20
+L102:
+cmp	edi, addr PrivNameBufEnd
+jge	>L103
+stosb
+jmp	L102
+
+L103:
+ret
+
+CRLF:
+push	ecx
+invoke  WriteFile, [STDOUT], addr CRLFDATA, 2, addr RCKEEP, 0
+pop	ecx
 ret
