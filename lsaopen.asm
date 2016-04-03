@@ -32,6 +32,8 @@ ENUMCOUNT
 	DD  0
 ENUMBUF
 	DD  0
+SIDSTR
+	DD  0
 
 CRLFDATA
 	DB  13, 10
@@ -57,6 +59,9 @@ MsgLsaClose:
 	DB 'LsaClose: '
 MsgLsaEAWUR:
 	DB 'LsaEnumerateAccountsWithUserRight: '
+MsgConvSID:
+	DB 'ConvertSidToStringSid: '
+;
 ;
 CODE SECTION
 ;
@@ -82,7 +87,7 @@ invoke  LsaEnumerateAccountsWithUserRight, [LSAHANDLE], eax, addr ENUMBUF, addr 
 pop	ecx
 
 cmp	eax, 0x8000001A		; STATUS_NO_MORE_ENTRIES
-jz	>PRINTNAME
+jz	>SKIP
 cmp	eax, 0xC0000060		; STATUS_NO_SUCH_PRIVILEGE
 jz	>SKIP
 test	eax,eax
@@ -92,11 +97,34 @@ PRINTNAME:
 call	privname
 push	ecx
 invoke  WriteFile, [STDOUT], addr PrivNameBuf, sizeof PrivNameBuf, addr RCKEEP, 0
-pop	ecx
-OUTPUTSIDS:
 
+STOP:
+OUTPUTSIDS:
+mov	ecx,0
+cmp	ecx,[ENUMCOUNT]
+jz	>NEXT
+SIDLOOP:
+mov	esi,[ENUMBUF]
+push	ecx
+invoke	ConvertSidToStringSidA, [esi+ecx*4],addr SIDSTR
+test	eax,eax
+jz	>BADSID
+mov	edi,[SIDSTR]
+sub	ecx,ecx
+not	ecx
+sub	eax,eax
+cld
+repne   scasb
+not	ecx
+dec	ecx
+invoke  WriteFile, [STDOUT], [SIDSTR], ecx, addr RCKEEP, 0
+pop	ecx
+inc	ecx
+cmp	ecx,[ENUMCOUNT]
+jb	SIDLOOP
 
 NEXT:
+pop	ecx ; privilege #
 call	CRLF
 SKIP:
 inc	ecx
@@ -112,6 +140,14 @@ jnz	>FAIL
 
 xor	eax, eax
 ret
+
+BADSID:
+pop	ecx
+pop	ecx
+invoke	GetLastError
+mov	ecx,sizeof MsgConvSID
+mov	esi,addr MsgConvSID
+jmp	FAIL
 
 PRIVFAIL:
 mov	ecx,sizeof MsgLsaEAWUR
