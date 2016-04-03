@@ -33,3 +33,11 @@ SeTimeZonePrivilege
 SeTrustedCredManAccessPrivilege
 SeUndockPrivilege
 SeUnsolicitedInputPrivilege
+SeBatchLogonRight
+SeDenyBatchLogonRight
+SeDenyInteractiveLogonRight
+SeDenyNetworkLogonRight
+SeDenyRemoteInteractiveLogonRight
+SeInteractiveLogonRight
+SeRemoteInteractiveLogonRight
+SeServiceLogonRight
