@@ -1,0 +1,9 @@
+Read Microsoft Windows Local Security Authority (LSA) Privileges
+================================================================
+
+This simple tool enumerates LSA privileges and shows accounts
+and groups that have those privileges assigned.
+
+Use awk to create priv.a and privlist.a
+
+Assemble using GoAsm and using GoLink to create the executable.
