@@ -80,41 +80,26 @@ jz	>FINISH
 push 	ecx
 invoke  LsaEnumerateAccountsWithUserRight, [LSAHANDLE], eax, addr ENUMBUF, addr ENUMCOUNT
 pop	ecx
-push	eax
 
+cmp	eax, 0x8000001A		; STATUS_NO_MORE_ENTRIES
+jz	>PRINTNAME
+cmp	eax, 0xC0000060		; STATUS_NO_SUCH_PRIVILEGE
+jz	>SKIP
+test	eax,eax
+jnz	>PRIVFAIL
+
+PRINTNAME:
 call	privname
 push	ecx
 invoke  WriteFile, [STDOUT], addr PrivNameBuf, sizeof PrivNameBuf, addr RCKEEP, 0
 pop	ecx
-
-STOP:
-pop	eax
-cmp	eax, 0x8000001A		; STATUS_NO_MORE_ENTRIES
-jz	>SOFTFAIL
-cmp	eax, 0xC0000060		; STATUS_NO_SUCH_PRIVILEGE
-jz	>SOFTFAIL
-
-test	eax,eax
-jnz	>PRIVFAIL
-
 OUTPUTSIDS:
 
-NEXT:
-inc	ecx
-call	CRLF
-jmp	LOOP
 
-SOFTFAIL:
-push	ecx
-push	eax
-invoke  WriteFile, [STDOUT], 'E', 1, addr RCKEEP, 0
-pop	eax
-mov	edi,addr RESULTSTR
-call	D2sHEXb
-invoke  WriteFile, [STDOUT], addr RESULTSTR, sizeof RESULTSTR, addr RCKEEP, 0
-pop	ecx
-inc	ecx
+NEXT:
 call	CRLF
+SKIP:
+inc	ecx
 jmp	LOOP
 
 FINISH:
