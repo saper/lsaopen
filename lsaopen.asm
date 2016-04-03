@@ -74,7 +74,7 @@ mov     ecx,sizeof MsgLsaOpenPolicy
 mov	esi,addr MsgLsaOpenPolicy
 jnz	>FAIL
 
-mov	ecx, 0
+sub	ecx, ecx		; privilege #
 
 LOOP:
 mov	esi, addr PRIVILEGES
@@ -93,20 +93,24 @@ jz	>SKIP
 test	eax,eax
 jnz	>PRIVFAIL
 
-PRINTNAME:
-call	privname
-push	ecx
-invoke  WriteFile, [STDOUT], addr PrivNameBuf, sizeof PrivNameBuf, addr RCKEEP, 0
+sub	edx,edx                 ; SID #
 
-STOP:
 OUTPUTSIDS:
-mov	ecx,0
-cmp	ecx,[ENUMCOUNT]
+
+push	edx
+call	privname
+pop	edx
+push	ecx
+push    edx
+invoke  WriteFile, [STDOUT], addr PrivNameBuf, sizeof PrivNameBuf, addr RCKEEP, 0
+pop	edx
+
+cmp	edx,[ENUMCOUNT]
 jz	>NEXT
 SIDLOOP:
 mov	esi,[ENUMBUF]
-push	ecx
-invoke	ConvertSidToStringSidA, [esi+ecx*4],addr SIDSTR
+push	edx
+invoke	ConvertSidToStringSidA, [esi+edx*4],addr SIDSTR
 test	eax,eax
 jz	>BADSID
 mov	edi,[SIDSTR]
@@ -118,10 +122,14 @@ repne   scasb
 not	ecx
 dec	ecx
 invoke  WriteFile, [STDOUT], [SIDSTR], ecx, addr RCKEEP, 0
+call	CRLF
+pop	edx
+inc	edx
 pop	ecx
+cmp	edx,[ENUMCOUNT]
+jb	OUTPUTSIDS
 inc	ecx
-cmp	ecx,[ENUMCOUNT]
-jb	SIDLOOP
+jmp	LOOP
 
 NEXT:
 pop	ecx ; privilege #
