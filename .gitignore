@@ -1,5 +1,6 @@
 *.obj
 *.lst
 *.exe
+*.idb
 priv.a
 privlist.a
