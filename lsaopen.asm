@@ -18,76 +18,103 @@
 ;   If not, see <http://www.gnu.org/licenses/>.
 ;
 ;------------------------------------------------------------------
-;
-DATA SECTION
-;
-;
-RCKEEP	dd	0
+
+            SECTION .data
+RCKEEP
+            dd	0
 LSAOBJ	
-	dd	0
-	dd	0
-	dd	0
-	dd	0
-	dd	0
+            dd	0
+            dd	0
+            dd	0
+            dd	0
+            dd	0
 LSAHANDLE
-	dd	0
+            dd	0
 sHEXb
-	db "0123456789ABCDEF"
+            db "0123456789ABCDEF"
 RESULTSTR
-	db '00000000'
+            db '00000000'
 ENUMCOUNT
-	dd  0
+            dd  0
 ENUMBUF
-	dd  0
+            dd  0
 SIDSTR
-	dd  0
+            dd  0
 
-CRLFDATA
-	db  13, 10
-
-STDOUT
-	dd  0
-
-struc   LsaUnicodeStr
-StrLen:		resw 1
-BufLen:		resw 1
-PrivString:	resd 1
-endstruc
-
-#include priv.a
-#include privlist.a
+CRLFDATA:
+                        db  13, 10
 
 PrivNameBuf:
-		resb	0
+                        db      'S', 0, 'e', 0
+PrivName:
+                        resw	40
 PrivNameBufEnd:
 
-MsgLsaOpenPolicy:
-		db 'LsaOpenPolicy: '
-MsgLsaClose:
-		db 'LsaClose: '
-MsgLsaEAWUR:
-		db 'LsaEnumerateAccountsWithUserRight: '
-MsgConvSID:
-		db 'ConvertSidToStringSid: '
-;
-;
-CODE SECTION
+LsaUnicodeStr:
+
+StrLen:		            dw      0
+BufLen:		            dw      PrivNameBufEnd-PrivNameBuf
+PrivString:             dd      PrivNameBuf
+
+%macro                  constr     2
+%%str:
+%1:                     db      %2
+%%strend:
+%1_Size                 equ     %%strend-%%str
+%endmacro
+
+                        constr     Privilege,       'Privilege'
+                        constr     Right,           'Right'
+                        constr     LsaOpenPolicy,   'LsaOpenPolicy: '
+                        constr     LsaClose,        'LsaClose: '
+                        constr     LsaEAWUR,        'LsaEnumerateAccountsWithUserRight: '
+                        constr     MsgConvSID,      'ConvertSidToStringSid: '
+
+%include 'priv.asm'
+
+                        SECTION    .bss
+STDOUT                  resd       1
+
+
+                        SECTION    .code
 ;
 START:
-	invoke  GetStdHandle, -11D ;STD_OUTPUT_HANDLE
-	mov	[STDOUT],eax
-	invoke	LsaOpenPolicy, 0, addr LSAOBJ, 0x801, addr LSAHANDLE
-	test	eax, eax
-	mov     ecx,sizeof MsgLsaOpenPolicy
-	mov	esi,addr MsgLsaOpenPolicy
-	jnz	>FAIL
+                        push    -11D            ;STD_OUTPUT_HANDLE
+                        call    GetStdHandle
+                        mov     [STDOUT], eax
 
-	sub	ecx, ecx		; privilege #
+                        push    LSAHANDLE
+                        push    0x801
+                        push    LSAOBJ
+                        push    0
+        	            call	LsaOpenPolicy
+
+                        test	eax, eax
+                        mov     ecx, MsgLsaOpenPolicy_Size
+                        mov     esi, MsgLsaOpenPolicy
+                        jnz     FAIL
+
+	                    sub     ecx, ecx		; privilege #
+                        
 LOOP:
-	mov	esi, addr PRIVILEGES
-	lea	eax, [esi + ecx * 8]
-	cmp	w[eax], 0
-	jz	>FINISH
+	                    mov     esi, PrivTable
+                        lea     eax, [esi + ecx * 4]
+                        cmp     w[eax], 0
+                        jz      FINISH
+
+D2sHEXb:                	                     ;eax=value (allow for reverse storage) [edi]=string
+                        add     edi, 7h          ;point to end of string and translate
+                    	mov     ecx, 8h          ;the eight characters right to left
+
+L100:
+                        mov     ebx, eax
+                        shr     eax, 4h
+                        and     ebx, 0Fh
+                        mov     dl,  [sHEXb+ebx]
+                        mov     [edi], dl
+                        dec     edi
+                        loop    L100
+                        ret
 
 	push 	ecx
 	invoke  LsaEnumerateAccountsWithUserRight, [LSAHANDLE], eax, addr ENUMBUF, addr ENUMCOUNT
@@ -178,19 +205,6 @@ FAIL:
 	inc	eax
 	ret
 
-D2sHEXb:                	;eax=value (allow for reverse storage) [edi]=string
-	add     edi,7h          ;point to end of string and translate
-	mov     ecx,8h          ;the eight characters right to left
-
-L100:
-	mov     ebx,eax
-	shr     eax,4h
-	and     ebx,0Fh
-	mov     dl,[sHEXb+ebx]
-	mov     [edi],dl
-	dec     edi
-	loop    L100
-	ret
 
 privname:
 	mov	edi, addr PrivNameBuf
