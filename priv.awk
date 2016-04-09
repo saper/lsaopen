@@ -22,9 +22,11 @@ BEGIN {
 	maxprivlen = 0
 }
 {
-	printf("%-40s	DW L'%s', 0\r\n", $0, $0);
+	printf("%-40s  	dw __utf16__('%s'), 0\r\n", $0, $0);
+	siz = sprintf("%sSize", $0);
+	printf("%-40s	equ %d\r\n", siz, length($0));
 	if (maxprivlen < length($0)) { maxprivlen = length($0); }
 }
 END {
-	printf("\r\n%-40s	DD %dD\r\n", "MAXPRIVNAMELEN", maxprivlen);
+	printf("\r\n%-40s	dd %dD\r\n", "MAXPRIVNAMELEN", maxprivlen);
 }

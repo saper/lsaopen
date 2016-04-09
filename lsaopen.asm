@@ -48,27 +48,27 @@ CRLFDATA
 STDOUT
 	dd  0
 
-LsaUnicodeStr STRUCT
-	StrLen		dw
-	BufLen		dw
-	PrivString	dd
-ENDS
+struc   LsaUnicodeStr
+StrLen:		resw 1
+BufLen:		resw 1
+PrivString:	resd 1
+endstruc
 
 #include priv.a
 #include privlist.a
 
-PrivNameBuf
-	db	40 DUP 0
-PrivNameBufEnd
+PrivNameBuf:
+		resb	0
+PrivNameBufEnd:
 
 MsgLsaOpenPolicy:
-	db 'LsaOpenPolicy: '
+		db 'LsaOpenPolicy: '
 MsgLsaClose:
-	db 'LsaClose: '
+		db 'LsaClose: '
 MsgLsaEAWUR:
-	db 'LsaEnumerateAccountsWithUserRight: '
+		db 'LsaEnumerateAccountsWithUserRight: '
 MsgConvSID:
-	db 'ConvertSidToStringSid: '
+		db 'ConvertSidToStringSid: '
 ;
 ;
 CODE SECTION
