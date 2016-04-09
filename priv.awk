@@ -22,7 +22,7 @@ BEGIN {
 	maxprivlen = 0
 }
 {
-	printf("%-40s  	dw __utf16__('%s'), 0\r\n", $0, $0);
+	printf("%-40s  	db '%s', 0\r\n", $0, $0);
 	siz = sprintf("%sSize", $0);
 	printf("%-40s	equ %d\r\n", siz, length($0));
 	if (maxprivlen < length($0)) { maxprivlen = length($0); }
