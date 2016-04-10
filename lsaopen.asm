@@ -24,26 +24,16 @@ extern      WriteFile
 extern      LsaOpenPolicy
 extern      LsaClose
 extern      LsaEnumerateAccountsWithUserRight
+extern      LsaEnumeratePrivileges
 extern      ConvertSidToStringSidA
 extern      GetLastError
 
-            SECTION .data
+                        SECTION .data
 
 sHEXb:                  db      "0123456789ABCDEF"
 CRLFDATA:               db      13, 10
 LSAHANDLE:              dd      -1
-
-LsaUnicodeStr:
-StrLen:                 dw      0
-BufLen:                 dw      PrivNameBufWEnd-PrivNameBufW
-PrivString:             dd      PrivNameBufW
-
-PrivNameBufA:           db      'Se'
-PrivNameA:              times   80 db 0
-PrivNameBufAEnd:
-
-SuffixPtr               dd      Privilege
-SuffixLen               dd      Privilege_Size
+PrivEnumCtx             dd      0
 
 %macro                  constr     2
 %%str:
@@ -57,10 +47,9 @@ SuffixLen               dd      Privilege_Size
                         constr  MsgLsaOpenPolicy, 'LsaOpenPolicy: '
                         constr  MsgLsaClose,      'LsaClose: '
                         constr  MsgLsaEAWUR,      'LsaEnumerateAccountsWithUserRight: '
+                        constr  MsgLsaEnumPriv,   'LsaEnumeratePrivileges: '
                         constr  MsgBadSID,        '??? ConvertSidToStringSid: '
                         constr  Tab,              9
-
-%include 'priv.asm'
 
                         SECTION    .bss
 stdout                  resd    1
@@ -72,10 +61,13 @@ ENUMCOUNT               resd    1
 ENUMBUF                 resd    1
 SIDSTR                  resd    1
 
-PrivNameBufW:           resw    80
-PrivNameBufWEnd:
+PrivEnumBuf             resd    1
+PrivEnumCount           resd    1
 
 PrivNameALen:           resd    1
+PrivNameBufA:           resb   80
+PrivNameBufAEnd:
+
 
 %macro                  Write   2
                         push    dword 0
@@ -107,47 +99,53 @@ start:
                         push    dword 0
                         call    [LsaOpenPolicy]
 
-                        test    eax, eax
                         Fail?   MsgLsaOpenPolicy, 0
 
-                        mov     esi, PrivTable
-PRIVLOOP:
-                        mov     eax, [esi]
-                        test    eax, eax
-                        jz      NextTab
+                        push    PrivEnumCount
+                        push    dword 2048
+                        push    PrivEnumBuf
+                        push    PrivEnumCtx
+                        push    dword [LSAHANDLE]
+                        Call    [LsaEnumeratePrivileges]
+                        Fail?   MsgLsaEnumPriv, 0
 
-                        push    esi             ; ( -- PrivTableEntry )
+                        mov     eax,[PrivEnumBuf]
+                        call    ToHex
+                        Write   HexStr, 8
+                        call    CRLF
+
+                        xor     ecx, ecx
+PRIVLOOP:
+                        cmp     ecx, [PrivEnumCount]
+                        jz      Finish
+
+                        mov     esi, [PrivEnumBuf]
+                        push    ecx
+                        shl     ecx, 4              ; Array of PPOLICY_PRIVILEGE_DEFINITIONs
+                        lea     eax, [esi + ecx]    ; contains LSA_UNICODE_STRING and 64-bit LUID
+
+                        push    ENUMCOUNT           ; Arguments for LsaEnumerateAccountsWithUserRight
+                        push    ENUMBUF
+                        push    eax
+                        push    dword [LSAHANDLE]
+
                         xor     ecx, ecx
                         mov     esi, eax
-                        mov     cl,  [esi]
+                        mov     cx,  [esi+2]        ; Actual length
+                        mov     eax, ecx
+                        mov     esi, [esi+4]
+                        shr     eax, 1
+                        mov     [PrivNameALen], eax
+                        mov     edi, PrivNameBufA
+ascii:                  movsb
                         inc     esi
-                        mov     edi, PrivNameA
-ascii:                  repnz   movsb
-                        mov     esi, [SuffixPtr]
-                        mov     ecx, [SuffixLen]
-                        repnz   movsb
-                        sub     edi, PrivNameBufA
-                        mov     [PrivNameALen], edi
-
-                        mov     ecx, edi        ; ASCII string length
-                        mov     esi, PrivNameBufA
-                        mov     edi, PrivNameBufW
-utf16:                  movsb
-                        inc     edi
                         dec     ecx
-                        jnz     utf16
-                        sub     edi, PrivNameBufW
-                        mov     [StrLen], di
+                        jnz     ascii
 
-                        push    ENUMCOUNT
-                        push    ENUMBUF
-                        push    LsaUnicodeStr
-                        push    dword [LSAHANDLE]
                         call    [LsaEnumerateAccountsWithUserRight]
-
-                        cmp     eax, 0x8000001A		; STATUS_NO_MORE_ENTRIES
+                        cmp     eax, 0x8000001A     ; STATUS_NO_MORE_ENTRIES
                         jz      Skip
-                        cmp     eax, 0xC0000060		; STATUS_NO_SUCH_PRIVILEGE
+                        cmp     eax, 0xC0000060     ; STATUS_NO_SUCH_PRIVILEGE
                         jz      Skip
                         Fail?   MsgLsaEAWUR, 1
 
@@ -183,12 +181,14 @@ DoneSID:
                         cmp     edx, [ENUMCOUNT]
                         jnz     SIDLoop
 
-Skip:                   pop     esi
-Next:                   inc     esi
-                        inc     esi
-                        inc     esi
-                        inc     esi
-                        jmp     PRIVLOOP
+Skip:                   pop     ecx
+                        inc     ecx
+                        cmp     ecx, [PrivEnumCount]
+                        jnz     PRIVLOOP
+
+Finish:
+                        xor     eax, eax
+                        jmp     DoClose
 
 BadSID:
                         Write   MsgBadSID, MsgBadSID_Size
@@ -196,19 +196,6 @@ BadSID:
                         call    ToHex
                         Write   HexStr, 8
                         jmp     DoneSID
-
-NextTab:
-                        cmp     esi, PrivTabEnd
-                        jz      Finish
-                        mov     eax, Right
-                        mov     ebx, Right_Size
-                        mov     [SuffixPtr], eax
-                        mov     [SuffixLen], ebx
-                        jmp     Next
-
-Finish:
-                        xor     eax, eax
-                        jmp     DoClose
 
 Fail2:
                         pop     edx
