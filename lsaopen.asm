@@ -14,7 +14,7 @@
 ;   GNU General Public License for more details.
 ;
 ;   You should have received a copy of the GNU General Public License
-;   along with this program in the COPYING file.  
+;   along with this program in the COPYING file.
 ;   If not, see <http://www.gnu.org/licenses/>.
 ;
 ;------------------------------------------------------------------
@@ -24,6 +24,8 @@ extern      WriteFile
 extern      LsaOpenPolicy
 extern      LsaClose
 extern      LsaEnumerateAccountsWithUserRight
+extern      ConvertSidToStringSidA
+extern      GetLastError
 
             SECTION .data
 
@@ -38,7 +40,7 @@ PrivString:             dd      PrivNameBufW
 
 PrivNameBufA:           db      'Se'
 PrivNameA:              times   80 db 0
-PrivNameBufAEnd: 
+PrivNameBufAEnd:
 
 SuffixPtr               dd      Privilege
 SuffixLen               dd      Privilege_Size
@@ -55,7 +57,8 @@ SuffixLen               dd      Privilege_Size
                         constr  MsgLsaOpenPolicy, 'LsaOpenPolicy: '
                         constr  MsgLsaClose,      'LsaClose: '
                         constr  MsgLsaEAWUR,      'LsaEnumerateAccountsWithUserRight: '
-                        constr  MsgConvSID,       'ConvertSidToStringSid: '
+                        constr  MsgBadSID,        '??? ConvertSidToStringSid: '
+                        constr  Tab,              9
 
 %include 'priv.asm'
 
@@ -135,7 +138,7 @@ utf16:                  movsb
                         jnz     utf16
                         sub     edi, PrivNameBufW
                         mov     [StrLen], di
-            
+
                         push    ENUMCOUNT
                         push    ENUMBUF
                         push    LsaUnicodeStr
@@ -148,14 +151,52 @@ utf16:                  movsb
                         jz      Skip
                         Fail?   MsgLsaEAWUR, 1
 
+                        xor     edx, edx
+SIDLoop:
+                        cmp     edx, [ENUMCOUNT]
+                        jz      Skip
+
+                        push    edx
+                        mov     esi, [ENUMBUF]
+                        push    SIDSTR
+                        push    dword [esi+edx*4]
+
                         Write   PrivNameBufA, dword [PrivNameALen]
+                        Write   Tab, Tab_Size
+                        call    [ConvertSidToStringSidA]
+                        test    eax, eax
+                        jz      BadSID
+
+                        mov     edi, [SIDSTR]
+                        sub     ecx, ecx
+                        not     ecx
+                        sub     eax,eax
+                        cld
+                        repne   scasb
+                        not     ecx
+                        dec     ecx
+                        Write   dword [SIDSTR], ecx
+DoneSID:
                         call    CRLF
+                        pop     edx
+                        inc     edx
+                        cmp     edx, [ENUMCOUNT]
+                        jnz     SIDLoop
+
 Skip:                   pop     esi
 Next:                   inc     esi
                         inc     esi
                         inc     esi
                         inc     esi
                         jmp     PRIVLOOP
+
+BadSID:
+                        Write   MsgBadSID, MsgBadSID_Size
+                        call    [GetLastError]
+                        call    ToHex
+                        Write   HexStr, 8
+                        jmp     DoneSID
+
 NextTab:
                         cmp     esi, PrivTabEnd
                         jz      Finish
@@ -164,14 +205,14 @@ NextTab:
                         mov     [SuffixPtr], eax
                         mov     [SuffixLen], ebx
                         jmp     Next
-                        
+
 Finish:
                         xor     eax, eax
                         jmp     DoClose
 
-Fail2:                  
+Fail2:
                         pop     edx
-Fail1:                  
+Fail1:
                         pop     edx
 Fail0:
                         push    ecx
@@ -217,111 +258,3 @@ L100:
 CRLF:
                         Write   CRLFDATA, 2
                         ret
-;	sub	edx,edx                 ; SID #
-;OUTPUTSIDS:
-;
-;	push	edx
-;	call	privname
-;	pop	edx
-;	push	ecx
-;	push    edx
-;	invoke  WriteFile, [stdout], addr PrivNameBuf, sizeof PrivNameBuf, addr RCKeep, 0
-;	pop	edx
-;
-;	cmp	edx,[ENUMCOUNT]
-;	jz	>NEXT
-;SIDLOOP:
-;	mov	esi,[ENUMBUF]
-;	push	edx
-;	invoke	ConvertSidToStringSidA, [esi+edx*4],addr SIDSTR
-;	test	eax,eax
-;	jz	>BADSID
-;	mov	edi,[SIDSTR]
-;	sub	ecx,ecx
-;	not	ecx
-;	sub	eax,eax
-;	cld
-;	repne   scasb
-;	not	ecx
-;	dec	ecx
-;	invoke  WriteFile, [stdout], [SIDSTR], ecx, addr RCKeep, 0
-;	call	CRLF
-;	pop	edx
-;	inc	edx
-;	pop	ecx
-;	cmp	edx,[ENUMCOUNT]
-;	jb	OUTPUTSIDS
-;	inc	ecx
-;	jmp	LOOP
-;
-;NEXT:
-;	pop	ecx ; privilege #
-;	call	CRLF
-;	SKIP:
-;	inc	ecx
-;	jmp	LOOP
-;
-;FINISH:
-;	invoke  LsaClose, [LSAHANDLE]
-;
-;	test	eax,eax
-;	mov	ecx,sizeof MsgLsaClose
-;	mov	esi,addr MsgLsaClose
-;	jnz	>FAIL
-;
-;	xor	eax, eax
-;	ret
-;
-;BADSID:
-;	pop	ecx
-;	pop	ecx
-;	invoke	GetLastError
-;	mov	ecx,sizeof MsgConvSID
-;	mov	esi,addr MsgConvSID
-;	jmp	FAIL
-;
-;PRIVFAIL:
-;	mov	ecx,sizeof MsgLsaEAWUR
-;	mov	esi,addr MsgLsaEAWUR
-;
-;FAIL:
-;	push	eax
-;	invoke  WriteFile, [stdout], esi, ecx, addr RCKeep, 0
-;	pop	eax
-;	mov	edi,addr RESULTSTR
-;	call	D2sHEXb
-;	invoke  WriteFile, [stdout], addr RESULTSTR, sizeof RESULTSTR, addr RCKeep, 0
-;	xor	eax,eax
-;	inc	eax
-;	ret
-;
-;
-;privname:
-;	mov	edi, addr PrivNameBuf
-;	mov	esi, addr PRIVILEGES
-;	xor	edx, edx
-;	mov	dx,  w[esi+ecx*8]
-;	mov	esi, d[esi+ecx*8+4]
-;L101:
-;	movsb
-;	inc	esi
-;	dec	dx
-;	dec	dx
-;	jnz	L101
-;
-;	; Pad privilege name with spaces
-;	mov	al, 0x20
-;L102:
-;	cmp	edi, addr PrivNameBufEnd
-;	jge	>L103
-;	stosb
-;	jmp	L102
-;
-;L103:
-;	ret
-;
-;CRLF:
-;	push	ecx
-;	invoke  WriteFile, [stdout], addr CRLFDATA, 2, addr RCKeep, 0
-;	pop	ecx
-;	ret
