@@ -134,7 +134,8 @@ PRIVLOOP:
                         mov     cx,  [esi+2]        ; Actual length
                         mov     eax, ecx
                         mov     esi, [esi+4]
-                        shr     eax, 1
+                        dec     eax                 ; Do not include last dw 0
+                        shr     eax, 1              ; We are now ASCII
                         mov     [PrivNameALen], eax
                         mov     edi, PrivNameBufA
 ascii:                  movsb
