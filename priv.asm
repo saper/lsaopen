@@ -77,4 +77,5 @@ RightsTable:
             right       'InteractiveLogon'
             right       'RemoteInteractiveLogon'
             right       'ServiceLogon'
+PrivTabEnd:
             endtab      rights
