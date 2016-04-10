@@ -109,11 +109,6 @@ start:
                         Call    [LsaEnumeratePrivileges]
                         Fail?   MsgLsaEnumPriv, 0
 
-                        mov     eax,[PrivEnumBuf]
-                        call    ToHex
-                        Write   HexStr, 8
-                        call    CRLF
-
                         xor     ecx, ecx
 PRIVLOOP:
                         cmp     ecx, [PrivEnumCount]
