@@ -29,17 +29,16 @@ extern      LsaEnumerateAccountsWithUserRight
 
 sHEXb:                  db      "0123456789ABCDEF"
 CRLFDATA:               db      13, 10
-SE:                     db      "Se"
 LSAHANDLE:              dd      -1
 
 LsaUnicodeStr:
 StrLen:                 dw      0
-BufLen:                 dw      PrivNameBufEnd-PrivNameBuf
-PrivString:             dd      PrivNameBuf
+BufLen:                 dw      PrivNameBufWEnd-PrivNameBufW
+PrivString:             dd      PrivNameBufW
 
-PrivNameBuf:            db      'S', 0, 'e', 0
-PrivName:               times   80 db 0
-PrivNameBufEnd: 
+PrivNameBufA:           db      'Se'
+PrivNameA:              times   80 db 0
+PrivNameBufAEnd: 
 
 SuffixPtr               dd      Privilege
 SuffixLen               dd      Privilege_Size
@@ -69,6 +68,11 @@ LSAOBJ                  resd    5
 ENUMCOUNT               resd    1
 ENUMBUF                 resd    1
 SIDSTR                  resd    1
+
+PrivNameBufW:           resw    80
+PrivNameBufWEnd:
+
+PrivNameALen:           resd    1
 
 %macro                  Write   2
                         push    dword 0
@@ -113,19 +117,23 @@ PRIVLOOP:
                         xor     ecx, ecx
                         mov     esi, eax
                         mov     cl,  [esi]
-                        mov     edi, PrivName
                         inc     esi
+                        mov     edi, PrivNameA
+ascii:                  repnz   movsb
+                        mov     esi, [SuffixPtr]
+                        mov     ecx, [SuffixLen]
+                        repnz   movsb
+                        sub     edi, PrivNameBufA
+                        mov     [PrivNameALen], edi
+
+                        mov     ecx, edi        ; ASCII string length
+                        mov     esi, PrivNameBufA
+                        mov     edi, PrivNameBufW
 utf16:                  movsb
                         inc     edi
                         dec     ecx
                         jnz     utf16
-                        mov     esi, [SuffixPtr]
-                        mov     ecx, [SuffixLen]
-utf16p:                 movsb
-                        inc     edi
-                        dec     ecx
-                        jnz     utf16p
-                        sub     edi, PrivNameBuf
+                        sub     edi, PrivNameBufW
                         mov     [StrLen], di
             
                         push    ENUMCOUNT
@@ -140,15 +148,7 @@ utf16p:                 movsb
                         jz      Skip
                         Fail?   MsgLsaEAWUR, 1
 
-                        Write   SE, 2
-                        pop     esi
-                        push    esi
-                        mov     esi, [esi]
-                        xor     ecx, ecx
-                        mov     cl, [esi]
-                        inc     esi
-                        Write   esi, ecx
-                        Write   dword [SuffixPtr], dword [SuffixLen]
+                        Write   PrivNameBufA, dword [PrivNameALen]
                         call    CRLF
 Skip:                   pop     esi
 Next:                   inc     esi
@@ -217,21 +217,6 @@ L100:
 CRLF:
                         Write   CRLFDATA, 2
                         ret
-;	pop	ecx
-;	ret
-                        ret
-;
-;	push 	ecx
-;	invoke  LsaEnumerateAccountsWithUserRight, [LSAHANDLE], eax, addr ENUMBUF, addr ENUMCOUNT
-;	pop	ecx
-;
-;	cmp	eax, 0x8000001A		; STATUS_NO_MORE_ENTRIES
-;	jz	>SKIP
-;	cmp	eax, 0xC0000060		; STATUS_NO_SUCH_PRIVILEGE
-;	jz	>SKIP
-;	test	eax,eax
-;	jnz	>PRIVFAIL
-;
 ;	sub	edx,edx                 ; SID #
 ;OUTPUTSIDS:
 ;
