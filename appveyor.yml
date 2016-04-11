@@ -1,0 +1,21 @@
+environment:
+  PATH: '%PATH%;C:\Program Files (x86)\nasm'
+
+install:
+- cmd: >-
+    curl -L -o nasminst.exe http://www.nasm.us/pub/nasm/releasebuilds/2.11.08/win32/nasm-2.11.08-installer.exe
+
+    start /wait nasminst.exe /S
+
+    curl -L -o golink.zip http://www.godevtool.com/Golink.zip
+
+    7z x Golink.exe
+
+build_script:
+    nasm -t win32 linkobj.asm
+
+    golink /console /debug=coff lsaopen.obj kernel32.dll advapi32.dll
+
+after_build:
+- cmd: >-
+    appveyor PushArtifact lsaopen.exe
