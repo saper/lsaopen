@@ -5,3 +5,150 @@ This simple tool enumerates LSA privileges and shows accounts
 and groups that have those privileges assigned.
 
 Written using NASM assembly language.
+
+The following privileges are reported:
+
+  SeAssignPrimaryTokenPrivilege
+  SeAuditPrivilege
+  SeBackupPrivilege
+  SeChangeNotifyPrivilege
+  SeCreateGlobalPrivilege
+  SeCreatePagefilePrivilege
+  SeCreatePermanentPrivilege
+  SeCreateSymbolicLinkPrivilege
+  SeCreateTokenPrivilege
+  SeDebugPrivilege
+  SeEnableDelegationPrivilege
+  SeImpersonatePrivilege
+  SeIncreaseBasePriorityPrivilege
+  SeIncreaseQuotaPrivilege
+  SeIncreaseWorkingSetPrivilege
+  SeLoadDriverPrivilege
+  SeLockMemoryPrivilege
+  SeMachineAccountPrivilege
+  SeManageVolumePrivilege
+  SeProfileSingleProcessPrivilege
+  SeRelabelPrivilege
+  SeRemoteShutdownPrivilege
+  SeRestorePrivilege
+  SeSecurityPrivilege
+  SeShutdownPrivilege
+  SeSyncAgentPrivilege
+  SeSystemEnvironmentPrivilege
+  SeSystemProfilePrivilege
+  SeSystemtimePrivilege
+  SeTakeOwnershipPrivilege
+  SeTcbPrivilege
+  SeTimeZonePrivilege
+  SeTrustedCredManAccessPrivilege
+  SeUndockPrivilege
+  SeUnsolicitedInputPrivilege
+
+and the following logon rights:
+
+  SeBatchLogonRight
+  SeDenyBatchLogonRight
+  SeDenyInteractiveLogonRight
+  SeDenyNetworkLogonRight
+  SeDenyRemoteInteractiveLogonRight
+  SeInteractiveLogonRight
+  SeRemoteInteractiveLogonRight
+  SeServiceLogonRight
+  
+
+This program needs to be run with administrative
+privileges and reads the privileges on the local
+computer only.
+
+
+Sample output below. The privilege name and the SID are separated
+by a single TAB character (ASCII 9).
+
+SeAssignPrimaryTokenPrivilege	S-1-5-21-111111111-2222222222-3333333333-1026
+SeAssignPrimaryTokenPrivilege	S-1-5-21-111111111-2222222222-3333333333-1025
+SeAssignPrimaryTokenPrivilege	S-1-5-21-111111111-2222222222-3333333333-1011
+SeAssignPrimaryTokenPrivilege	S-1-5-21-111111111-2222222222-3333333333-1008
+SeAssignPrimaryTokenPrivilege	S-1-5-20
+SeAssignPrimaryTokenPrivilege	S-1-5-19
+SeAuditPrivilege	S-1-5-20
+SeAuditPrivilege	S-1-5-19
+SeBackupPrivilege	S-1-5-32-551
+SeBackupPrivilege	S-1-5-32-544
+SeChangeNotifyPrivilege	S-1-5-32-551
+SeChangeNotifyPrivilege	S-1-5-32-547
+SeChangeNotifyPrivilege	S-1-5-32-545
+SeChangeNotifyPrivilege	S-1-5-32-544
+SeChangeNotifyPrivilege	S-1-5-21-111111111-2222222222-3333333333-1026
+SeChangeNotifyPrivilege	S-1-5-21-111111111-2222222222-3333333333-1025
+SeChangeNotifyPrivilege	S-1-5-21-111111111-2222222222-3333333333-1011
+SeChangeNotifyPrivilege	S-1-5-21-111111111-2222222222-3333333333-1008
+SeChangeNotifyPrivilege	S-1-1-0
+SeCreateGlobalPrivilege	S-1-5-6
+SeCreateGlobalPrivilege	S-1-5-4
+SeCreateGlobalPrivilege	S-1-5-32-544
+SeCreatePagefilePrivilege	S-1-5-32-544
+SeDebugPrivilege	S-1-5-32-544
+SeImpersonatePrivilege	S-1-5-6
+SeImpersonatePrivilege	S-1-5-32-544
+SeImpersonatePrivilege	S-1-5-21-111111111-2222222222-3333333333-1023
+SeImpersonatePrivilege	S-1-5-21-111111111-2222222222-3333333333-1003
+SeIncreaseBasePriorityPrivilege	S-1-5-32-544
+SeIncreaseQuotaPrivilege	S-1-5-32-544
+SeIncreaseQuotaPrivilege	S-1-5-21-111111111-2222222222-3333333333-1026
+SeIncreaseQuotaPrivilege	S-1-5-21-111111111-2222222222-3333333333-1025
+SeIncreaseQuotaPrivilege	S-1-5-21-111111111-2222222222-3333333333-1011
+SeIncreaseQuotaPrivilege	S-1-5-21-111111111-2222222222-3333333333-1008
+SeIncreaseQuotaPrivilege	S-1-5-20
+SeIncreaseQuotaPrivilege	S-1-5-19
+SeLoadDriverPrivilege	S-1-5-32-544
+SeManageVolumePrivilege	S-1-5-32-544
+SeProfileSingleProcessPrivilege	S-1-5-32-547
+SeProfileSingleProcessPrivilege	S-1-5-32-544
+SeRemoteShutdownPrivilege	S-1-5-32-544
+SeRestorePrivilege	S-1-5-32-551
+SeRestorePrivilege	S-1-5-32-544
+SeSecurityPrivilege	S-1-5-32-544
+SeShutdownPrivilege	S-1-5-32-551
+SeShutdownPrivilege	S-1-5-32-547
+SeShutdownPrivilege	S-1-5-32-545
+SeShutdownPrivilege	S-1-5-32-544
+SeSystemEnvironmentPrivilege	S-1-5-32-544
+SeSystemProfilePrivilege	S-1-5-32-544
+SeSystemtimePrivilege	S-1-5-32-547
+SeSystemtimePrivilege	S-1-5-32-544
+SeTakeOwnershipPrivilege	S-1-5-32-544
+SeUndockPrivilege	S-1-5-32-547
+SeUndockPrivilege	S-1-5-32-545
+SeUndockPrivilege	S-1-5-32-544
+SeBatchLogonRight	S-1-5-32
+SeBatchLogonRight	S-1-5-21-111111111-2222222222-3333333333-500
+SeBatchLogonRight	S-1-5-21-111111111-2222222222-3333333333-1023
+SeBatchLogonRight	S-1-5-21-111111111-2222222222-3333333333-1020
+SeBatchLogonRight	S-1-5-21-111111111-2222222222-3333333333-1008
+SeBatchLogonRight	S-1-5-21-111111111-2222222222-3333333333-1003
+SeBatchLogonRight	S-1-5-21-111111111-2222222222-3333333333-1002
+SeDenyInteractiveLogonRight	S-1-5-21-111111111-2222222222-3333333333-501
+SeDenyInteractiveLogonRight	S-1-5-21-111111111-2222222222-3333333333-1023
+SeDenyInteractiveLogonRight	S-1-5-21-111111111-2222222222-3333333333-1003
+SeDenyInteractiveLogonRight	S-1-5-21-111111111-2222222222-3333333333-1002
+SeDenyNetworkLogonRight	S-1-5-21-111111111-2222222222-3333333333-501
+SeDenyNetworkLogonRight	S-1-5-21-111111111-2222222222-3333333333-1002
+SeDenyRemoteInteractiveLogonRight	S-1-5-21-111111111-2222222222-3333333333-1023
+SeDenyRemoteInteractiveLogonRight	S-1-5-21-111111111-2222222222-3333333333-1003
+SeInteractiveLogonRight	S-1-5-32-551
+SeInteractiveLogonRight	S-1-5-32-547
+SeInteractiveLogonRight	S-1-5-32-545
+SeInteractiveLogonRight	S-1-5-32-544
+SeInteractiveLogonRight	S-1-5-21-111111111-2222222222-3333333333-501
+SeRemoteInteractiveLogonRight	S-1-5-32-555
+SeRemoteInteractiveLogonRight	S-1-5-32-544
+SeServiceLogonRight	S-1-5-21-111111111-2222222222-3333333333-500
+SeServiceLogonRight	S-1-5-21-111111111-2222222222-3333333333-1026
+SeServiceLogonRight	S-1-5-21-111111111-2222222222-3333333333-1025
+SeServiceLogonRight	S-1-5-21-111111111-2222222222-3333333333-1023
+SeServiceLogonRight	S-1-5-21-111111111-2222222222-3333333333-1011
+SeServiceLogonRight	S-1-5-21-111111111-2222222222-3333333333-1008
+SeServiceLogonRight	S-1-5-21-111111111-2222222222-3333333333-1006
+SeServiceLogonRight	S-1-5-21-111111111-2222222222-3333333333-1003
+SeServiceLogonRight	S-1-5-20
+

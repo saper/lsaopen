@@ -14,8 +14,20 @@ install:
 build_script:
     nasm -f win32 lsaopen.asm
 
-    golink /console /debug=coff lsaopen.obj kernel32.dll advapi32.dll
+    golink /console lsaopen.obj kernel32.dll advapi32.dll
 
 after_build:
 - cmd: >-
     appveyor PushArtifact lsaopen.exe
+
+deploy:
+  release: lsaopen-v$(appveyor_build_version)
+  description: $(appveyor_repo_commit_message)
+  provider: GitHub
+  auth_token:
+    secure: TZWHdWB7HEXs185DJofVPjzOgmXxkBwe4mYk08jivBGUwUZxkoRDqO9KNypP8Ggj
+  artifact: /lsaopen.exe/
+  draft: false
+  prerelease: false
+  on:
+    appveyor_repo_tag: true
