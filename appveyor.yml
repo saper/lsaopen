@@ -9,10 +9,10 @@ install:
 
     curl -L -o golink.zip http://www.godevtool.com/Golink.zip
 
-    7z x Golink.exe
+    7z x Golink.zip Golink.exe
 
 build_script:
-    nasm -t win32 linkobj.asm
+    nasm -f win32 lsaopen.asm
 
     golink /console /debug=coff lsaopen.obj kernel32.dll advapi32.dll
 
